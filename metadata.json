@@ -1,0 +1,6 @@
+{
+  "name": "ECU340 Rust 上位机界面设计与联调工作台",
+  "description": "面向 MC9S12XS128 / ECU340 的 Rust 工业上位机界面设计与协议仿真套件，支持 115200 8-N-1、四种应用协议遥测、M5 7544B 参数事务保存向导、S19 单区 BootLoader OTA 升级及 egui/eframe Rust 架构代码生成。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
