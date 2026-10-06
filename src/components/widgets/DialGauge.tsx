@@ -23,8 +23,9 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
   warningThreshold,
   criticalThreshold,
   color = '#10b981', // emerald default
-  size = 170,
+  size = 120,
 }) => {
+  const isCompact = size < 140;
   const clampedValue = Math.min(Math.max(value, min), max);
   const percentage = (clampedValue - min) / (max - min);
 
@@ -35,7 +36,7 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
 
   const radius = size * 0.38;
   const cx = size / 2;
-  const cy = size / 2 + 6;
+  const cy = size / 2 + (isCompact ? 4 : 6);
 
   // Arc path generator
   const polarToCartesian = (centerX: number, centerY: number, r: number, angleInDegrees: number) => {
@@ -69,19 +70,19 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
 
   // Generate tick marks
   const ticks = [];
-  const numTicks = 9;
+  const numTicks = isCompact ? 7 : 9;
   for (let i = 0; i < numTicks; i++) {
     const tickPercent = i / (numTicks - 1);
     const tickAngle = startAngle + tickPercent * sweepAngle;
-    const p1 = polarToCartesian(cx, cy, radius + 4, tickAngle);
-    const p2 = polarToCartesian(cx, cy, radius + 11, tickAngle);
+    const p1 = polarToCartesian(cx, cy, radius + (isCompact ? 2 : 4), tickAngle);
+    const p2 = polarToCartesian(cx, cy, radius + (isCompact ? 7 : 11), tickAngle);
     const tickVal = Math.round(min + tickPercent * (max - min));
     ticks.push({ p1, p2, tickVal, tickAngle });
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-3 bg-slate-900/70 border border-slate-800 rounded">
-      <div className="text-[11px] font-medium tracking-wider uppercase text-slate-400 mb-1">
+    <div className={`flex flex-col items-center justify-center ${isCompact ? 'p-2' : 'p-3'} bg-slate-900/80 border border-slate-800 rounded shadow-xs`}>
+      <div className={`${isCompact ? 'text-[10px]' : 'text-[11px]'} font-semibold tracking-wider text-slate-300 mb-0.5 font-sans`}>
         {label}
       </div>
 
@@ -92,7 +93,7 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
             d={bgArc}
             fill="none"
             stroke="#1e293b"
-            strokeWidth="5"
+            strokeWidth={isCompact ? '4' : '5'}
             strokeLinecap="round"
           />
 
@@ -102,7 +103,7 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
               d={activeArc}
               fill="none"
               stroke={activeColor}
-              strokeWidth="5"
+              strokeWidth={isCompact ? '4' : '5'}
               strokeLinecap="round"
               className="transition-all duration-150"
             />
@@ -117,16 +118,16 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
               x2={t.p2.x}
               y2={t.p2.y}
               stroke="#334155"
-              strokeWidth="1.5"
+              strokeWidth={isCompact ? '1.2' : '1.5'}
             />
           ))}
 
           {/* Needle Center Pin */}
-          <circle cx={cx} cy={cy} r="4" fill="#64748b" />
+          <circle cx={cx} cy={cy} r={isCompact ? 3 : 4} fill="#64748b" />
 
           {/* Needle Line */}
           {(() => {
-            const needleTip = polarToCartesian(cx, cy, radius - 6, currentAngle);
+            const needleTip = polarToCartesian(cx, cy, radius - (isCompact ? 4 : 6), currentAngle);
             return (
               <line
                 x1={cx}
@@ -134,7 +135,7 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
                 x2={needleTip.x}
                 y2={needleTip.y}
                 stroke={activeColor}
-                strokeWidth="2"
+                strokeWidth={isCompact ? '1.8' : '2'}
                 strokeLinecap="round"
                 className="transition-all duration-150"
               />
@@ -143,12 +144,12 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
         </svg>
 
         {/* Tabular Value readout */}
-        <div className="absolute inset-x-0 bottom-1 flex flex-col items-center justify-center text-center">
+        <div className="absolute inset-x-0 bottom-0.5 flex flex-col items-center justify-center text-center">
           <div className="flex items-baseline justify-center">
-            <span className="text-xl font-mono font-bold tracking-tight text-slate-100 tabular-nums">
+            <span className={`${isCompact ? 'text-base' : 'text-xl'} font-mono font-bold tracking-tight text-slate-100 tabular-nums`}>
               {value.toFixed(decimals)}
             </span>
-            <span className="text-[10px] font-mono text-slate-400 ml-1 uppercase">
+            <span className={`${isCompact ? 'text-[9px]' : 'text-[10px]'} font-mono text-slate-400 ml-1`}>
               {unit}
             </span>
           </div>
@@ -156,7 +157,7 @@ export const DialGauge: React.FC<DialGaugeProps> = ({
       </div>
 
       {/* Min/Max Range bounds */}
-      <div className="w-full flex justify-between px-2 text-[10px] font-mono text-slate-500">
+      <div className={`w-full flex justify-between px-1.5 ${isCompact ? 'text-[9px]' : 'text-[10px]'} font-mono text-slate-500`}>
         <span>{min}</span>
         <span>{max}</span>
       </div>

@@ -1,17 +1,17 @@
 /**
- * ECU340 Rust 上位机界面设计与交互仿真套件
+ * ECU340 发动机电子控制单元标定与测试上位机工作台
  * Windows 标准桌面软件风格：
- * - Windows 自定义深色标题栏 (TitleBar + 窗口控制按钮)
- * - 经典菜单栏 (文件 F / 通信 C / 标定 T / 工具 D / 视图 V / 帮助 H)
- * - 常用快捷工具条 (ToolBar / Ribbon)
- * - 主屏核心：实时监控仪表 + 示波器 + 实时指令控制台
+ * - Windows 自定义标题栏 (TitleBar + 标准窗口控制三键)
+ * - 经典菜单栏 (文件 F / 编辑 E / 通信 C / 标定 T / 监控 M / 工具 U / 视图 V / 帮助 H)
+ * - 快捷工具条 (ToolBar / 端口/协议快速选择/常用动作)
+ * - 主屏核心：实时监控仪表 + 示波器 + 实时指令控制台 (主要显示空间，零空间浪费)
  * - 经典多窗格底部状态栏 (StatusBar)
+ * - 全部界面元素 100% 中文化
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { WindowsTitleBar } from './components/WindowsTitleBar';
 import { WindowsMenuBar } from './components/WindowsMenuBar';
-import { WindowsToolBar } from './components/WindowsToolBar';
 import { WindowsStatusBar } from './components/WindowsStatusBar';
 import { AuxModalType } from './components/Header';
 import { MainCockpitView } from './components/views/MainCockpitView';
@@ -72,7 +72,7 @@ const INITIAL_TELEMETRY: TelemetryData = {
 const INITIAL_DTC: DtcCode[] = [
   {
     code: 'P0117',
-    description: '进气温度传感器 (IAT) 低电平线路漂移',
+    description: '进气歧管温度传感器回路输入电压偏低',
     category: 'SENSOR',
     status: 'STICKY',
     timestamp: '2026-10-05 02:14:10',
@@ -80,7 +80,7 @@ const INITIAL_DTC: DtcCode[] = [
   },
   {
     code: 'P0562',
-    description: '主供电母线电瓶电压瞬间低落 (<11.0V)',
+    description: '系统母线供电电瓶瞬时欠压 (<11.0伏特)',
     category: 'SYSTEM',
     status: 'ACTIVE',
     timestamp: '2026-10-05 03:02:18',
@@ -91,56 +91,56 @@ const INITIAL_DTC: DtcCode[] = [
 const INITIAL_BENCH_CASES: BenchTestCase[] = [
   {
     id: 'M8-08-01',
-    name: '怠速闭环稳定性 (Idle Stability)',
+    name: '怠速闭环控制稳定性测试',
     workConditionId: 'M8-08-01',
-    inputDescription: 'TPS=0%, 负载突变 200W',
-    expectedCondition: 'RPM = 1200 ± 50, 波动 < 3%',
-    actualTelemetry: '1205 RPM (波动 1.2%)',
-    tolerance: '±50 RPM',
+    inputDescription: '节气门开度=0%, 负载突变 200瓦',
+    expectedCondition: '发动机转速 = 1200 ± 50 转/分, 波动 < 3%',
+    actualTelemetry: '1205 转/分 (转速波动 1.2%)',
+    tolerance: '±50 转/分',
     status: 'PASS',
     executionTime: '2026-10-05 03:10',
   },
   {
     id: 'M8-08-02',
-    name: '全开油门 (WOT) 瞬态加浓与超速切油',
+    name: '全开油门瞬态加浓与超转速切油保护测试',
     workConditionId: 'M8-08-02',
-    inputDescription: 'TPS 0% -> 100% 阶跃, 目标转速 7500 RPM',
-    expectedCondition: '7400 RPM 触发断油, 喷油脉宽归零',
-    actualTelemetry: '7408 RPM 瞬态断油 (脉宽 0µs)',
-    tolerance: '±20 RPM',
+    inputDescription: '节气门开度 0% -> 100% 阶跃, 目标转速 7500 转/分',
+    expectedCondition: '7400 转/分 触发安全断油, 喷油脉宽归零',
+    actualTelemetry: '7408 转/分 瞬态切油保护生效 (喷油脉宽 0微秒)',
+    tolerance: '±20 转/分',
     status: 'PASS',
     executionTime: '2026-10-05 03:12',
   },
   {
     id: 'M8-08-03',
-    name: '冷启动暖机喷油加浓比例验证',
+    name: '冷启动暖机喷油加浓修正比例验证',
     workConditionId: 'M8-08-03',
-    inputDescription: 'CHT1 = 18℃, 起动信号 42 激活',
-    expectedCondition: '喷油脉宽 = 基准 × 125%',
-    actualTelemetry: 'FPW 2312µs (125.0%)',
+    inputDescription: '1缸缸温 = 18℃, 起动指令 42 激活拖动',
+    expectedCondition: '主喷油脉宽 = 基础脉宽 × 125%',
+    actualTelemetry: '主喷油脉宽 2312微秒 (加浓比例 125.0%)',
     tolerance: '±2%',
     status: 'PASS',
     executionTime: '2026-10-05 03:15',
   },
   {
     id: 'M8-08-04',
-    name: 'BARO 气压修正斜率对拍',
+    name: '环境大气压力补偿线性衰减斜率对拍',
     workConditionId: 'M8-08-04',
-    inputDescription: '模拟气压由 992 降至 850 mbar',
-    expectedCondition: 'FPW 依 (FPW-400)*BARO/950 线性衰减',
-    actualTelemetry: '衰减比例 89.4% (公式计算 89.47%)',
+    inputDescription: '模拟环境大气压由 992 降至 850 毫巴',
+    expectedCondition: '喷油脉宽按大气压比例线性衰减',
+    actualTelemetry: '实测衰减比例 89.4% (公式理论值 89.47%)',
     tolerance: '±0.5%',
     status: 'PASS',
     executionTime: '2026-10-05 03:18',
   },
   {
     id: 'M8-08-05',
-    name: '停机锁电 dwell 宽度与电机脉宽 800µs',
+    name: '停机锁电闭合角与混合动力电机安全脉宽 800微秒验证',
     workConditionId: 'M8-08-05',
-    inputDescription: '下发命令 65 停机',
-    expectedCondition: '电机反馈 = 800µs, DWELL = DWELL - 600',
-    actualTelemetry: '电机脉宽 800µs 锁存, 转速归零',
-    tolerance: '精确 800µs',
+    inputDescription: '下发控制指令 65 停机',
+    expectedCondition: '电机反馈脉宽 = 800微秒, 点火闭合角安全锁存',
+    actualTelemetry: '电机脉宽 800微秒硬件锁存, 发动机转速归零',
+    tolerance: '精确 800微秒',
     status: 'PASS',
     executionTime: '2026-10-05 03:20',
   },
@@ -152,7 +152,7 @@ export default function App() {
   const [simulating, setSimulating] = useState<boolean>(true);
   const [pausedScope, setPausedScope] = useState<boolean>(false);
 
-  // Auxiliary Modal State (Connection, M5 Params, OTA, Diagnostics, Bench, Rust, Help, About)
+  // 辅助功能模态窗口状态 (通信/参数/固件/诊断/台架/源码/手册/关于)
   const [auxModal, setAuxModal] = useState<AuxModalType>(null);
 
   const [telemetry, setTelemetry] = useState<TelemetryData>(INITIAL_TELEMETRY);
@@ -161,7 +161,7 @@ export default function App() {
   const [dtcList, setDtcList] = useState<DtcCode[]>(INITIAL_DTC);
   const [benchCases, setBenchCases] = useState<BenchTestCase[]>(INITIAL_BENCH_CASES);
 
-  // M5 Parameter transaction state
+  // M5 参数事务状态机
   const [paramTxState, setParamTxState] = useState<ParamTransactionState>({
     status: 'IDLE',
     currentChunk: 0,
@@ -174,10 +174,10 @@ export default function App() {
     outputLocked: false,
   });
 
-  // OTA state
+  // OTA 固件升级状态机
   const [otaState, setOtaState] = useState<OtaState>({
     status: 'IDLE',
-    filename: 'ECU340_V3.41_RELEASE.s19',
+    filename: 'ECU340_V3.41_发布版固件.s19',
     fileSize: 114688,
     recordCount: 3584,
     totalBytes: 114688,
@@ -196,7 +196,7 @@ export default function App() {
 
   const nextFrameId = useRef<number>(1);
 
-  // Log raw frames helper
+  // 记录串口原始报文辅助函数
   const logFrame = (
     dir: 'TX' | 'RX',
     proto: ProtocolType | 'PARAM_EA' | 'OTA_AA',
@@ -219,28 +219,28 @@ export default function App() {
     setRawFrames(prev => [frame, ...prev.slice(0, 199)]);
   };
 
-  // Export CSV Helper
+  // 导出 CSV 报文日志
   const handleExportCsv = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      'ID,Dir,Timestamp,Protocol,Hex,Summary\n' +
+      '序号,传输方向,时间戳,通信协议,十六进制报文,业务语义解析\n' +
       rawFrames
         .map(
           f =>
-            `${f.id},${f.dir},${f.timestamp},${f.protocol},"${f.rawHex}","${f.summary}"`
+            `${f.id},${f.dir === 'TX' ? '下行发送' : '上行接收'},${f.timestamp},${f.protocol},"${f.rawHex}","${f.summary}"`
         )
         .join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `ECU340_SCI_LOG_${Date.now()}.csv`);
+    link.setAttribute('download', `ECU340_串口通信报文日志_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // 20Hz Telemetry Simulation Loop
+  // 20Hz 遥测仿真循环
   useEffect(() => {
     if (!simulating || sessionState === 'DISCONNECTED') return;
 
@@ -291,7 +291,7 @@ export default function App() {
 
         if (nextFrameId.current % 4 === 0) {
           const rxBytes = packTelemetryFrame(protocol, updated);
-          logFrame('RX', protocol, rxBytes, `遥测: RPM=${updated.rpm}, TPS=${updated.tps.toFixed(1)}%`);
+          logFrame('RX', protocol, rxBytes, `遥测上报: 转速=${updated.rpm}转/分, 节气门=${updated.tps.toFixed(1)}%`);
         }
 
         return updated;
@@ -301,21 +301,21 @@ export default function App() {
     return () => clearInterval(timer);
   }, [simulating, sessionState, protocol]);
 
-  // Handle Send Downlink Command
+  // 下发控制命令处理
   const handleSendCommand = (cmd: number, value: number) => {
     const txBytes = buildDownlinkFrame(protocol, cmd, value, frameCounter & 0xff);
-    let summary = `命令 ${cmd}, 值 ${value}`;
+    let summary = `指令编码 ${cmd}, 设定值 ${value}`;
 
     if (cmd === 64) {
       const tpsVal = +(value / 10).toFixed(1);
-      summary = `油门请求 (64): ${tpsVal}%`;
+      summary = `节气门开度设定 (64): ${tpsVal}%`;
       setTelemetry(prev => ({
         ...prev,
         tps: tpsVal,
         engine_state: prev.engine_state === 'STOPPED' ? 'CRANKING' : prev.engine_state,
       }));
     } else if (cmd === 65) {
-      summary = `停机命令 (65): 强制停机并锁定电机脉宽 800µs`;
+      summary = `停机命令 (65): 强制停机并锁定电机脉宽为 800微秒 安全值`;
       setTelemetry(prev => ({
         ...prev,
         engine_state: 'STOPPED',
@@ -325,26 +325,26 @@ export default function App() {
         fuel_rate: 0,
       }));
     } else if (cmd === 42) {
-      summary = `起动请求 (42): Starter Active`;
+      summary = `起动请求 (42): 吸合起动机拖动点火`;
       setTelemetry(prev => ({
         ...prev,
         engine_state: 'CRANKING',
         rpm: 450,
       }));
     } else if (cmd === 161) {
-      summary = `主喷油脉宽 (161): ${value}µs`;
+      summary = `主喷油脉宽设定 (161): ${value}微秒`;
       setTelemetry(prev => ({ ...prev, fuel_pulse_width: value }));
     } else if (cmd === 160) {
-      summary = `点火提前角 (160): ${value}°BTDC`;
+      summary = `点火提前角设定 (160): ${value}度 (上止点前)`;
       setTelemetry(prev => ({ ...prev, spark_angle: value }));
     } else if (cmd === 167) {
-      summary = `加油量 (167): +${value}µs (互斥清除减油量)`;
+      summary = `单次加油量 (167): +${value}微秒 (互斥清除减油量)`;
       setTelemetry(prev => ({
         ...prev,
         fuel_pulse_width: prev.fuel_pulse_width + value,
       }));
     } else if (cmd === 166) {
-      summary = `减油量 (166): -${value}µs (互斥清除加油量)`;
+      summary = `单次减油量 (166): -${value}微秒 (互斥清除加油量)`;
       setTelemetry(prev => ({
         ...prev,
         fuel_pulse_width: Math.max(prev.fuel_pulse_width - value, 400),
@@ -354,10 +354,9 @@ export default function App() {
     logFrame('TX', protocol, txBytes, summary);
   };
 
-  // Keyboard Shortcuts Hook
+  // 全局 Windows 键盘快捷键监听
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape closes modal
       if (e.key === 'Escape') {
         if (auxModal) {
           setAuxModal(null);
@@ -399,7 +398,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [auxModal]);
 
-  // RTC Trigger
+  // 触发 RTC 时钟上报
   const handleTriggerRtc = () => {
     handleSendCommand(0x98, 1);
     setTelemetry(prev => ({
@@ -409,7 +408,7 @@ export default function App() {
     }));
   };
 
-  // Handle M5 45-chunk Parameter Save Transaction
+  // M5 45包标定参数安全保存事务
   const handleStartParamTx = (updatedItems: ParameterItem[]) => {
     setParamTxState({
       status: 'BEGIN',
@@ -425,7 +424,7 @@ export default function App() {
 
     const beginPayload = [0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x0F, 0xA7, 0xC1, 0x34, 0x0F];
     const beginBytes = buildParamFrame(0xb0, beginPayload);
-    logFrame('TX', 'PARAM_EA', beginBytes, 'M5-04 BEGIN (0xB0): 发起 7544B 事务');
+    logFrame('TX', 'PARAM_EA', beginBytes, 'M5-04 启动事务 (0xB0): 发起 7544 字节整集参数固化');
 
     let chunk = 0;
     const interval = setInterval(() => {
@@ -441,34 +440,34 @@ export default function App() {
         const length = chunk === 45 ? 152 : 168;
         const chunkData = new Array(length).fill(0xaa);
         const dataBytes = buildParamFrame(0xb1, [0x00, (offset >> 8) & 0xff, offset & 0xff, length, ...chunkData.slice(0, 16)]);
-        logFrame('TX', 'PARAM_EA', dataBytes, `M5-04 DATA (0xB1): 包 #${chunk}/45 (偏移 ${offset}, 长度 ${length})`);
+        logFrame('TX', 'PARAM_EA', dataBytes, `M5-04 写入分片 (0xB1): 包 #${chunk}/45 (偏移 0x${offset.toString(16).toUpperCase()}, 长度 ${length}字节)`);
       } else {
         clearInterval(interval);
         setParamTxState(prev => ({ ...prev, status: 'COMMIT' }));
         const commitBytes = buildParamFrame(0xb2, [0xA7, 0xC1, 0x34, 0x0F]);
-        logFrame('TX', 'PARAM_EA', commitBytes, 'M5-04 COMMIT (0xB2): 载荷 CRC32 确认');
+        logFrame('TX', 'PARAM_EA', commitBytes, 'M5-04 提交载荷 (0xB2): 载荷 CRC32 循环冗余校验确认');
 
         setTimeout(() => {
           setParamTxState(prev => ({ ...prev, status: 'READBACK_VERIFY', verifiedBytes: 7544 }));
-          logFrame('TX', 'PARAM_EA', buildParamFrame(0xb3, [0x00, 0x00, 0x00, 0xa8]), 'M5-04 READBACK (0xB3): 45包实读回 100% 一致');
+          logFrame('TX', 'PARAM_EA', buildParamFrame(0xb3, [0x00, 0x00, 0x00, 0xa8]), 'M5-04 实读回比对 (0xB3): 45包逐字节实读回 100% 比对一致');
 
           setTimeout(() => {
             setParamTxState(prev => ({ ...prev, status: 'COMPLETED' }));
-            logFrame('RX', 'PARAM_EA', buildParamFrame(0xb4, [0x00, 0x02, 0x00, 0x00, 0x00, 0x0F]), 'M5-04 RESULT (0xB4): 状态 OK, Source D-Flash, Gen #15');
-            alert('M5 参数保存事务执行完成！45包实读回校验完全一致，已确认 D-Flash 持久化并复位。');
+            logFrame('RX', 'PARAM_EA', buildParamFrame(0xb4, [0x00, 0x02, 0x00, 0x00, 0x00, 0x0F]), 'M5-04 事务完成 (0xB4): 状态正常, 数据源 数据闪存, 固化第 #15 代');
+            alert('M5 标定参数保存事务执行完成！45包实读回校验完全一致，已确认数据闪存持久化并完成软复位。');
           }, 600);
         }, 600);
       }
     }, 70);
   };
 
-  // Handle OTA Flashing Simulation
+  // OTA 固件升级模拟
   const handleSelectSampleS19 = (filename: string, isMalicious: boolean = false) => {
     if (isMalicious) {
       setOtaState(prev => ({
         ...prev,
         filename,
-        errorReason: 'Security Gate Rejection: S19 包含地址 0x3EF200，侵入 Bootloader 0xF000..0xFFFF 保护扇区！',
+        errorReason: '安全门禁拦截拒绝: S19 镜像包含越界地址 0x3EF200，企图侵入引导程序 0xF000..0xFFFF 受保护扇区！',
         validS19Sections: [
           { address: '0x388000 - 0x38BFFF', ppage: 0x38, length: 16384, status: 'VALID' },
           { address: '0x3EF000 - 0x3EFFFF', ppage: 0x3E, length: 4096, status: 'REJECTED_BOOTLOADER' },
@@ -493,11 +492,11 @@ export default function App() {
     if (otaState.errorReason) return;
 
     setOtaState(prev => ({ ...prev, status: 'HANDSHAKE', progressPercent: 5 }));
-    logFrame('TX', 'OTA_AA', buildOtaFrame(0x01, 1, [0x55, 0xAA]), 'OTA 握手: 查询 BootLoader 版本');
+    logFrame('TX', 'OTA_AA', buildOtaFrame(0x01, 1, [0x55, 0xAA]), 'OTA 握手: 查询引导程序版本号');
 
     setTimeout(() => {
       setOtaState(prev => ({ ...prev, status: 'ERASE', progressPercent: 20 }));
-      logFrame('TX', 'OTA_AA', buildOtaFrame(0x03, 2, [0x38, 0x39, 0x3A, 0x3E]), 'OTA 扇区擦除: 擦除目标 PPAGE');
+      logFrame('TX', 'OTA_AA', buildOtaFrame(0x03, 2, [0x38, 0x39, 0x3A, 0x3E]), 'OTA 扇区擦除: 擦除目标物理闪存分页');
 
       setTimeout(() => {
         setOtaState(prev => ({ ...prev, status: 'WRITING', progressPercent: 30 }));
@@ -506,17 +505,17 @@ export default function App() {
         const writeInterval = setInterval(() => {
           progress += 10;
           setOtaState(prev => ({ ...prev, progressPercent: Math.min(progress, 85) }));
-          logFrame('TX', 'OTA_AA', buildOtaFrame(0x04, (progress / 10) & 0xff, [0x00, 0x80]), `OTA 分片编程: 写入 128B 数据块 (已写入 ${progress}%)`);
+          logFrame('TX', 'OTA_AA', buildOtaFrame(0x04, (progress / 10) & 0xff, [0x00, 0x80]), `OTA 分片编程: 写入 128字节 数据块 (已写入 ${progress}%)`);
 
           if (progress >= 85) {
             clearInterval(writeInterval);
             setOtaState(prev => ({ ...prev, status: 'VERIFY', progressPercent: 95 }));
-            logFrame('TX', 'OTA_AA', buildOtaFrame(0x05, 12, [0x00]), 'OTA 实读回校验 (Readback Verify): CRC16 匹配通过');
+            logFrame('TX', 'OTA_AA', buildOtaFrame(0x05, 12, [0x00]), 'OTA 实读回逐字节比对校验: CRC16 校验完全匹配通过');
 
             setTimeout(() => {
               setOtaState(prev => ({ ...prev, status: 'COMPLETED', progressPercent: 100 }));
-              logFrame('TX', 'OTA_AA', buildOtaFrame(0x06, 13, [0x01]), 'OTA 分区切换: 跳转至新应用固件启动');
-              alert('OTA 固件升级成功！已通过单区实读回校验并重新启动应用固件。');
+              logFrame('TX', 'OTA_AA', buildOtaFrame(0x06, 13, [0x01]), 'OTA 分区生效: 跳转至新固件引导启动');
+              alert('OTA 固件升级成功！已通过单区实读回比对校验并重新启动应用固件。');
             }, 600);
           }
         }, 200);
@@ -525,10 +524,10 @@ export default function App() {
   };
 
   const handleCancelFlashing = () => {
-    setOtaState(prev => ({ ...prev, status: 'FAILED', progressPercent: 0, errorReason: '用户手动中止升级' }));
+    setOtaState(prev => ({ ...prev, status: 'FAILED', progressPercent: 0, errorReason: '用户手动中止升级流程' }));
   };
 
-  // Run bench test case
+  // 运行台架工况单项测试
   const handleRunBenchTest = (testId: string) => {
     setBenchCases(prev =>
       prev.map(tc => {
@@ -550,68 +549,52 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-[#07090e] text-slate-100 flex flex-col font-sans selection:bg-emerald-950 selection:text-emerald-300 overflow-hidden">
-      {/* 1. Windows Custom TitleBar */}
+      {/* 1. Windows 标准标题栏 */}
       <WindowsTitleBar
         protocol={protocol}
         sessionState={sessionState}
         frameCounter={frameCounter}
       />
 
-      {/* 2. Windows Classic MenuBar (文件 F / 通信 C / 标定 T / 工具 D / 视图 V / 帮助 H) */}
+      {/* 2. Windows 经典菜单栏 (文件 F / 编辑 E / 标定 T / 工具 U / 帮助 H) 与 快捷入口 */}
       <WindowsMenuBar
-        protocol={protocol}
-        onSetProtocol={setProtocol}
-        sessionState={sessionState}
-        onToggleConnect={toggleConnect}
-        simulating={simulating}
-        onToggleSim={() => setSimulating(p => !p)}
-        onEmergencyStop={() => handleSendCommand(65, 1)}
-        onTriggerRtc={handleTriggerRtc}
         onOpenModal={setAuxModal}
-        pausedScope={pausedScope}
-        onTogglePauseScope={() => setPausedScope(p => !p)}
         onExportCsv={handleExportCsv}
       />
 
-      {/* 3. Windows Action ToolBar (快捷工具条 Ribbon) */}
-      <WindowsToolBar
-        protocol={protocol}
-        sessionState={sessionState}
-        onToggleConnect={toggleConnect}
-        simulating={simulating}
-        onToggleSim={() => setSimulating(p => !p)}
-        onEmergencyStop={() => handleSendCommand(65, 1)}
-        frameCounter={frameCounter}
-        onOpenModal={setAuxModal}
-      />
-
-      {/* 4. Core Main Cockpit Workspace: Dominant Primary Viewport */}
+      {/* 3. 核心工作区：实时监控面板与指令控制台占据主要显示空间 */}
       <main className="flex-1 overflow-y-auto">
         <MainCockpitView
           telemetry={telemetry}
           protocol={protocol}
+          onSetProtocol={setProtocol}
+          sessionState={sessionState}
+          onToggleConnect={toggleConnect}
+          simulating={simulating}
+          onToggleSim={() => setSimulating(p => !p)}
           onSendCommand={handleSendCommand}
           pausedScope={pausedScope}
           onTogglePauseScope={() => setPausedScope(p => !p)}
           onTriggerRtc={handleTriggerRtc}
           rawFrames={rawFrames}
           onOpenDiagnostics={() => setAuxModal('diagnostics')}
+          onOpenConnectionModal={() => setAuxModal('connection')}
         />
       </main>
 
-      {/* 5. Windows Classic Multi-Panel StatusBar */}
+      {/* 5. Windows 经典多窗格底部状态栏 */}
       <WindowsStatusBar
         protocol={protocol}
         sessionState={sessionState}
         frameCounter={frameCounter}
       />
 
-      {/* Auxiliary Modals / Windows: Non-blocking, clean focus */}
+      {/* 辅助功能弹出窗口 (按 Windows 对话框模态呈现，不挤占核心主屏) */}
       {auxModal === 'connection' && (
         <AuxModalShell
-          title="SCI1 / RS422 物理通信通道与协议设置"
-          subtitle="115200 8-N-1 规范锁定"
-          badge={sessionState}
+          title="物理通信通道与通信协议参数设置"
+          subtitle="波特率 115200 8-N-1 规范锁定"
+          badge={sessionState === 'APPLICATION' ? '正常运行' : '未连接'}
           badgeColor={sessionState === 'APPLICATION' ? 'emerald' : 'amber'}
           onClose={() => setAuxModal(null)}
           maxWidth="max-w-5xl"
@@ -633,9 +616,9 @@ export default function App() {
 
       {auxModal === 'parameters' && (
         <AuxModalShell
-          title="M5-04 整集标定参数工程 (7544 字节事务向导)"
-          subtitle="44×168B + 152B = 45 包 · 8B 对齐"
-          badge="D-Flash"
+          title="M5-04 整集标定参数工程 (7544 字节安全保存向导)"
+          subtitle="44×168字节 + 152字节 = 45包 · 8字节严格对齐"
+          badge="数据闪存"
           badgeColor="cyan"
           onClose={() => setAuxModal(null)}
           maxWidth="max-w-7xl"
@@ -652,9 +635,9 @@ export default function App() {
 
       {auxModal === 'ota' && (
         <AuxModalShell
-          title="MC9S12XS128 BootLoader OTA 固件升级"
-          subtitle="S19 Motorola 解析与 PPAGE 闪存地址门禁"
-          badge="单区 PART_COUNT=1"
+          title="MC9S12XS128 引导加载程序固件升级向导"
+          subtitle="S19 格式固件镜像解析与物理闪存分页地址门禁"
+          badge="单物理分区"
           badgeColor="amber"
           onClose={() => setAuxModal(null)}
           maxWidth="max-w-6xl"
@@ -670,9 +653,9 @@ export default function App() {
 
       {auxModal === 'diagnostics' && (
         <AuxModalShell
-          title="机载 DTC 故障码诊断字典与 SCI1 原始报文监控"
-          subtitle="双向 Hex 报文分词解析与冻结帧"
-          badge={`${dtcList.length} 个故障码`}
+          title="机载故障诊断代码字典与串口物理报文监听"
+          subtitle="双向十六进制报文分词解析与参数冻结帧快照"
+          badge={`${dtcList.length} 项故障码`}
           badgeColor={dtcList.length > 0 ? 'rose' : 'emerald'}
           onClose={() => setAuxModal(null)}
           maxWidth="max-w-7xl"
@@ -680,7 +663,7 @@ export default function App() {
           <DiagnosticsView
             dtcList={dtcList}
             onClearDtc={() => {
-              if (confirm('确认清除所有活动与锁存 DTC 故障码？')) {
+              if (confirm('确认清除所有活动与锁存故障诊断码？')) {
                 setDtcList([]);
               }
             }}
@@ -693,8 +676,8 @@ export default function App() {
 
       {auxModal === 'bench' && (
         <AuxModalShell
-          title="M8-08 自动化台架工况对拍矩阵"
-          subtitle="380201 台架规程与闭环公差校核"
+          title="M8-08 自动化台架工况闭环对拍矩阵"
+          subtitle="380201 专用台架测试规程与闭环容差校核"
           badge="5 项全闭环"
           badgeColor="emerald"
           onClose={() => setAuxModal(null)}
@@ -709,9 +692,9 @@ export default function App() {
 
       {auxModal === 'rust_code' && (
         <AuxModalShell
-          title="Rust 原生上位机架构与源码生成器"
-          subtitle="eframe / egui · stable 2021 · 无锁 Crossbeam Worker 架构"
-          badge="Rust Cargo"
+          title="Rust 原生上位机工程架构与代码生成器"
+          subtitle="Rust 2021 稳定版 · 独立无锁后台工作线程架构"
+          badge="Rust 原生工程"
           badgeColor="emerald"
           onClose={() => setAuxModal(null)}
           maxWidth="max-w-7xl"

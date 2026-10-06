@@ -30,9 +30,9 @@ export const AuxModalShell: React.FC<AuxModalShellProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs">
       <div
-        className={`bg-slate-900 border border-slate-800 rounded-lg w-full ${maxWidth} max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-sans`}
+        className={`bg-slate-900 border border-slate-700 rounded-lg w-full ${maxWidth} max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-sans`}
       >
-        {/* Modal Top Header */}
+        {/* 窗口顶栏 */}
         <div className="h-12 px-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider truncate">
@@ -40,13 +40,13 @@ export const AuxModalShell: React.FC<AuxModalShellProps> = ({
             </h2>
             {badge && (
               <span
-                className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold shrink-0 ${badgeClasses}`}
+                className={`text-[10px] font-sans px-2 py-0.5 rounded border font-semibold shrink-0 ${badgeClasses}`}
               >
                 {badge}
               </span>
             )}
             {subtitle && (
-              <span className="text-xs text-slate-500 font-mono hidden md:inline truncate">
+              <span className="text-xs text-slate-400 hidden md:inline truncate">
                 · {subtitle}
               </span>
             )}
@@ -55,13 +55,13 @@ export const AuxModalShell: React.FC<AuxModalShellProps> = ({
           <button
             onClick={onClose}
             className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-            title="关闭窗口 (Esc)"
+            title="关闭当前窗口 (快捷键: Esc)"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Scrollable Content Stage */}
+        {/* 窗口滚动内容区 */}
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>
